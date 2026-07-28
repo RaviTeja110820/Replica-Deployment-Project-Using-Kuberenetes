@@ -10,7 +10,6 @@ This project demonstrates:
 - Rolling updates
 - Rollbacks
 - Services
-- Horizontal Pod Autoscaler (HPA)
 
 Platform Used:
 
@@ -18,6 +17,73 @@ Platform Used:
 - Docker Hub as image registry
 
 ---
+
+# Architecture
+
+![Architecture](Architecture.png)
+
+```
+                              Internet User
+                                    │
+                                    ▼
+                        +------------------------+
+                        |   LoadBalancer Service |
+                        +------------------------+
+                                    │
+                                    ▼
+                        +------------------------+
+                        |      Deployment        |
+                        |  (Manages Updates)     |
+                        +------------------------+
+                                    │
+                                    ▼
+                        +------------------------+
+                        |      ReplicaSet        |
+                        | Maintains Pod Count    |
+                        +------------------------+
+                           │         │         │
+                           ▼         ▼         ▼
+                     +---------+ +---------+ +---------+
+                     |  Pod 1  | |  Pod 2  | |  Pod 3  |
+                     | NGINX   | | NGINX   | | NGINX   |
+                     +---------+ +---------+ +---------+
+```
+
+# workflow
+```
+Prepare Application
+        │
+        ▼
+Create Docker Image
+        │
+        ▼
+Push Image to Docker Hub
+        │
+        ▼
+Create ReplicaSet
+        │
+        ▼
+ReplicaSet Creates Pods
+        │
+        ▼
+Verify Self-Healing
+(Delete a Pod → ReplicaSet Recreates It)
+        │
+        ▼
+Create Deployment
+        │
+        ▼
+Expose Application using Service
+        │
+        ▼
+Scale Deployment
+        │
+        ▼
+Perform Rolling Update
+        │
+        ▼
+Rollback Deployment (if required)
+```
 
 # Project Structure
 
@@ -29,7 +95,6 @@ k8s-nginx-project/
 ├── replicaset.yaml
 ├── deployment.yaml
 ├── service.yaml
-└── hpa.yaml
 ```
 
 ---
@@ -443,50 +508,6 @@ Refresh browser and verify Version 1 returns.
 
 ---
 
-# Step 25 — Install Metrics Server (Optional)
-
-```bash
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-```
-
----
-
-# Step 26 — Create Horizontal Pod Autoscaler
-
-Create autoscaler:
-
-```bash
-kubectl autoscale deployment nginx-deployment --cpu-percent=50 --min=2 --max=10
-```
-
-Verify:
-
-```bash
-kubectl get hpa
-```
-
----
-
-# Step 27 — Add Resource Limits
-
-Update deployment.yaml container section:
-
-```yaml
-resources:
-  requests:
-    memory: "64Mi"
-    cpu: "250m"
-
-  limits:
-    memory: "128Mi"
-    cpu: "500m"
-```
-
-Apply changes:
-
-```bash
-kubectl apply -f deployment.yaml
-```
 
 ---
 
@@ -562,7 +583,6 @@ At the end of this project you will understand:
 - Scaling Applications
 - Rolling Updates
 - Rollbacks
-- HPA Autoscaling
 - GKE Deployments
 - Docker Hub Registry Integration
 
